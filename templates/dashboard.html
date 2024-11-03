@@ -1,0 +1,425 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 backdrop-blur-lg bg-opacity-50 dark:bg-opacity-50">
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+        <div>
+            <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">{{ lecturer.name }}</h1>
+            <p class="text-gray-600 dark:text-gray-400">NIK: {{ lecturer.nik }}</p>
+        </div>
+        <div class="flex space-x-3">
+            <!-- Management Buttons -->
+            <button onclick="openAddModal()" 
+                    class="inline-flex items-center px-4 py-2.5 bg-blue-500 dark:bg-blue-600 text-white rounded-xl hover:bg-blue-600 dark:hover:bg-blue-700 transition-colors">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+                Tambah
+            </button>
+
+            <!-- Export/Import Dropdown -->
+            <div class="relative">
+                <button onclick="toggleDropdown()" 
+                        class="inline-flex items-center px-4 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 4H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-2m-4-1v8m0 0l3-3m-3 3L9 8m-5 5h2.586a1 1 0 01.707.293l2.414 2.414a1 1 0 00.707.293h3.172a1 1 0 00.707-.293l2.414-2.414a1 1 0 01.707-.293H20"></path>
+                    </svg>
+                    Export/Import
+                </button>
+
+                <div id="dropdownMenu" class="hidden absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-lg z-50">
+                    <div class="py-1">
+                        <button onclick="exportSchedule('xlsx')" 
+                                class="w-full px-4 py-2 text-sm text-left text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            Export XLSX
+                        </button>
+                        <button onclick="exportSchedule('csv')" 
+                                class="w-full px-4 py-2 text-sm text-left text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            Export CSV
+                        </button>
+                        <button onclick="document.getElementById('importFile').click()" 
+                                class="w-full px-4 py-2 text-sm text-left text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            Import File
+                        </button>
+                    </div>
+                </div>
+                <input type="file" id="importFile" accept=".xlsx,.csv" class="hidden" onchange="importSchedule(this)">
+            </div>
+        </div>
+    </div>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="mb-4 p-4 rounded-xl {% if category == 'success' %}bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300{% else %}bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300{% endif %}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div id="scheduleList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {% for schedule in lecturer.schedules %}
+        <div id="schedule-{{ schedule.id }}" class="group bg-white dark:bg-gray-700 rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 p-4 border border-gray-100 dark:border-gray-600">
+            <div class="flex justify-between items-start">
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">{{ schedule.course_name }}</h3>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">{{ schedule.day }}</p>
+                    <p class="text-sm text-gray-600 dark:text-gray-400">{{ schedule.start_time }} - {{ schedule.end_time }}</p>
+                    <p class="text-sm text-gray-600 dark:text-gray-400">Ruang {{ schedule.room }}</p>
+                </div>
+                <div class="flex space-x-2">
+                    <button onclick="openEditModal({{ schedule.id }})" 
+                            class="text-blue-500 dark:text-blue-400 hover:text-blue-600 dark:hover:text-blue-300 transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                        </svg>
+                    </button>
+                    <button onclick="deleteSchedule({{ schedule.id }})" 
+                            class="text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Add Schedule Modal -->
+<div id="addModal" class="hidden fixed inset-0 bg-gray-900/50 dark:bg-gray-900/80 backdrop-blur-sm overflow-y-auto h-full w-full">
+    <div class="relative top-20 mx-auto p-6 border w-96 shadow-lg rounded-2xl bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700">
+        <div class="mt-3">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Tambah Jadwal Baru</h3>
+            <form id="addForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-2">Mata Kuliah</label>
+                    <input type="text" name="course_name" required 
+                           class="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-colors">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-2">Hari</label>
+                    <div class="relative">
+                        <select name="day" required 
+                                class="appearance-none w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-colors">
+                            <option value="Senin">Senin</option>
+                            <option value="Selasa">Selasa</option>
+                            <option value="Rabu">Rabu</option>
+                            <option value="Kamis">Kamis</option>
+                            <option value="Jumat">Jumat</option>
+                            <option value="Sabtu">Sabtu</option>
+                        </select>
+                        <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+                            <svg class="w-4 h-4 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-2">Waktu Mulai</label>
+                        <input type="time" name="start_time" required 
+                               class="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-colors">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-2">Waktu Selesai</label>
+                        <input type="time" name="end_time" required 
+                               class="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-colors">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-2">Ruang</label>
+                    <input type="text" name="room" required 
+                           class="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-colors">
+                </div>
+
+                <div class="flex justify-end space-x-3">
+                    <button type="button" onclick="closeAddModal()" 
+                            class="px-4 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                        Batal
+                    </button>
+                    <button type="submit" 
+                            class="px-4 py-2.5 bg-blue-500 dark:bg-blue-600 text-white rounded-xl hover:bg-blue-600 dark:hover:bg-blue-700 transition-colors">
+                        Simpan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Schedule Modal -->
+<div id="editModal" class="hidden fixed inset-0 bg-gray-900/50 dark:bg-gray-900/80 backdrop-blur-sm overflow-y-auto h-full w-full">
+    <div class="relative top-20 mx-auto p-6 border w-96 shadow-lg rounded-2xl bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700">
+        <div class="mt-3">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Edit Jadwal</h3>
+            <form id="editForm" class="space-y-4">
+                <input type="hidden" name="schedule_id">
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-2">Mata Kuliah</label>
+                    <input type="text" name="course_name" required 
+                           class="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-colors">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-2">Hari</label>
+                    <div class="relative">
+                        <select name="day" required 
+                                class="appearance-none w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-colors">
+                            <option value="Senin">Senin</option>
+                            <option value="Selasa">Selasa</option>
+                            <option value="Rabu">Rabu</option>
+                            <option value="Kamis">Kamis</option>
+                            <option value="Jumat">Jumat</option>
+                            <option value="Sabtu">Sabtu</option>
+                        </select>
+                        <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+                            <svg class="w-4 h-4 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-2">Waktu Mulai</label>
+                        <input type="time" name="start_time" required 
+                               class="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-colors">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-2">Waktu Selesai</label>
+                        <input type="time" name="end_time" required 
+                               class="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-colors">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-2">Ruang</label>
+                    <input type="text" name="room" required 
+                           class="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-colors">
+                </div>
+
+                <div class="flex justify-end space-x-3">
+                    <button type="button" onclick="closeEditModal()" 
+                            class="px-4 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                        Batal
+                    </button>
+                    <button type="submit" 
+                            class="px-4 py-2.5 bg-blue-500 dark:bg-blue-600 text-white rounded-xl hover:bg-blue-600 dark:hover:bg-blue-700 transition-colors">
+                        Update
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+const socket = io();
+let currentSchedule = null;
+
+// Socket.io event listeners remain the same
+socket.on('schedule_update', function(data) {
+    if (data.action === 'add') {
+        addScheduleToDOM(data.schedule);
+    } else if (data.action === 'update') {
+        updateScheduleInDOM(data.schedule);
+    } else if (data.action === 'delete') {
+        removeScheduleFromDOM(data.schedule_id);
+    }
+});
+
+// Modal functions remain the same
+function openAddModal() {
+    document.getElementById('addModal').classList.remove('hidden');
+}
+
+function closeAddModal() {
+    document.getElementById('addModal').classList.add('hidden');
+    document.getElementById('addForm').reset();
+}
+
+function toggleDropdown() {
+    const dropdownMenu = document.getElementById('dropdownMenu');
+    dropdownMenu.classList.toggle('hidden');
+}
+
+// Close dropdown when clicking outside
+window.addEventListener('click', function(e) {
+    const dropdown = document.querySelector('.relative');
+    if (!dropdown.contains(e.target)) {
+        document.getElementById('dropdownMenu').classList.add('hidden');
+    }
+});
+
+function openEditModal(scheduleId) {
+    currentSchedule = scheduleId;
+    const schedule = document.getElementById(`schedule-${scheduleId}`);
+    const form = document.getElementById('editForm');
+
+    form.elements['schedule_id'].value = scheduleId;
+    form.elements['course_name'].value = schedule.querySelector('h3').textContent;
+    form.elements['day'].value = schedule.querySelector('p:nth-child(2)').textContent;
+    const times = schedule.querySelector('p:nth-child(3)').textContent.split(' - ');
+    form.elements['start_time'].value = times[0];
+    form.elements['end_time'].value = times[1];
+    form.elements['room'].value = schedule.querySelector('p:nth-child(4)').textContent.replace('Ruang ', '');
+
+    document.getElementById('editModal').classList.remove('hidden');
+}
+
+function closeEditModal() {
+    document.getElementById('editModal').classList.add('hidden');
+    document.getElementById('editForm').reset();
+    currentSchedule = null;
+}
+
+// DOM manipulation functions
+function addScheduleToDOM(schedule) {
+    const scheduleList = document.getElementById('scheduleList');
+    const scheduleElement = createScheduleElement(schedule);
+    scheduleList.appendChild(scheduleElement);
+}
+
+function updateScheduleInDOM(schedule) {
+    const scheduleElement = document.getElementById(`schedule-${schedule.id}`);
+    if (scheduleElement) {
+        scheduleElement.replaceWith(createScheduleElement(schedule));
+    }
+}
+
+function removeScheduleFromDOM(scheduleId) {
+    const scheduleElement = document.getElementById(`schedule-${scheduleId}`);
+    if (scheduleElement) {
+        scheduleElement.remove();
+    }
+}
+
+function createScheduleElement(schedule) {
+    const div = document.createElement('div');
+    div.id = `schedule-${schedule.id}`;
+    div.className = 'group bg-white dark:bg-gray-700 rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 p-4 border border-gray-100 dark:border-gray-600';
+    div.innerHTML = `
+        <div class="flex justify-between items-start">
+            <div>
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">${schedule.course_name}</h3>
+                <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">${schedule.day}</p>
+                <p class="text-sm text-gray-600 dark:text-gray-400">${schedule.start_time} - ${schedule.end_time}</p>
+                <p class="text-sm text-gray-600 dark:text-gray-400">Ruang ${schedule.room}</p>
+            </div>
+            <div class="flex space-x-2">
+                <button onclick="openEditModal(${schedule.id})" 
+                        class="text-blue-500 dark:text-blue-400 hover:text-blue-600 dark:hover:text-blue-300 transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                    </svg>
+                </button>
+                <button onclick="deleteSchedule(${schedule.id})" 
+                        class="text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    `;
+    return div;
+}
+
+// Form submissions
+document.getElementById('addForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const data = Object.fromEntries(formData.entries());
+
+    fetch('/api/schedule', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.message) {
+            closeAddModal();
+        }
+    });
+});
+
+document.getElementById('editForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const data = Object.fromEntries(formData.entries());
+    const scheduleId = formData.get('schedule_id');
+
+    fetch(`/api/schedule/${scheduleId}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.message) {
+            closeEditModal();
+        }
+    });
+});
+
+function deleteSchedule(scheduleId) {
+    if (confirm('Apakah Anda yakin ingin menghapus jadwal ini?')) {
+        fetch(`/api/schedule/${scheduleId}`, {
+            method: 'DELETE'
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.message) {
+                removeScheduleFromDOM(scheduleId);
+            }
+        });
+    }
+}
+
+function exportSchedule(format) {
+    window.location.href = `/api/schedule/export/${format}`;
+}
+
+function importSchedule(input) {
+    if (!input.files || !input.files[0]) return;
+
+    const file = input.files[0];
+    const formData = new FormData();
+    formData.append('file', file);
+
+    fetch('/api/schedule/import', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.error) {
+            alert('Error: ' + result.error);
+        } else {
+            alert(result.message);
+            // Refresh the page to show new schedules
+            window.location.reload();
+        }
+    })
+    .catch(error => {
+        alert('Error uploading file: ' + error);
+    })
+    .finally(() => {
+        // Reset the file input
+        input.value = '';
+    });
+}
+</script>
+{% endblock %}

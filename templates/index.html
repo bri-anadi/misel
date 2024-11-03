@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 backdrop-blur-lg bg-opacity-50 dark:bg-opacity-50">
+    <h1 class="text-2xl font-semibold mb-6 text-gray-900 dark:text-white">Cari Jadwal Dosen</h1>
+
+    <!-- Search Controls -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <!-- Faculty Select -->
+        <div class="relative">
+            <label class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-2">Fakultas</label>
+            <div class="relative">
+                <select id="faculty" class="appearance-none w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-colors">
+                    <option value="">Semua Fakultas</option>
+                    {% for faculty in faculties %}
+                    <option value="{{ faculty.id }}">{{ faculty.name }}</option>
+                    {% endfor %}
+                </select>
+                <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+                    <svg class="w-4 h-4 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- Department Select -->
+        <div class="relative">
+            <label class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-2">Program Studi</label>
+            <div class="relative">
+                <select id="department" class="appearance-none w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-colors">
+                    <option value="">Semua Prodi</option>
+                    {% for department in departments %}
+                    <option value="{{ department.id }}" data-faculty="{{ department.faculty_id }}">{{ department.name }}</option>
+                    {% endfor %}
+                </select>
+                <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+                    <svg class="w-4 h-4 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- Search Input -->
+        <div class="relative">
+            <label class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-2">Cari Dosen</label>
+            <div class="relative">
+                <input autocomplete="off" type="text" id="search" 
+                    class="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-colors"
+                    placeholder="Nama dosen...">
+                <div class="absolute inset-y-0 right-0 flex items-center px-2">
+                    <svg class="w-5 h-5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                    </svg>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results Grid and Pagination -->
+    <div class="space-y-6">
+        <!-- Results Grid -->
+        <div id="results" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <!-- Results will be populated here -->
+        </div>
+
+        <!-- Pagination Controls -->
+        <div id="pagination" class="flex items-center justify-between border-t border-gray-200 dark:border-gray-700 px-4 py-3 sm:px-6">
+            <div class="flex items-center">
+                <p class="text-sm text-gray-700 dark:text-gray-300">
+                    Showing <span id="itemsShowing" class="font-medium">0</span> results
+                </p>
+            </div>
+            <div class="flex items-center space-x-2">
+                <button id="prevPage" class="relative inline-flex items-center px-4 py-2 text-sm font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:z-10 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed">
+                    Previous
+                </button>
+                <span id="pageInfo" class="text-sm text-gray-700 dark:text-gray-300">
+                    Page <span id="currentPage">1</span> of <span id="totalPages">1</span>
+                </span>
+                <button id="nextPage" class="relative inline-flex items-center px-4 py-2 text-sm font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:z-10 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed">
+                    Next
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const socket = io();
+let searchTimeout;
+let currentPage = 1;
+
+function updateResults() {
+    const query = document.getElementById('search').value;
+    const faculty = document.getElementById('faculty').value;
+    const department = document.getElementById('department').value;
+
+    // Show loading state
+    const results = document.getElementById('results');
+    results.innerHTML = '<div class="col-span-full flex justify-center py-8"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 dark:border-blue-400"></div></div>';
+
+    fetch(`/api/search?q=${query}&faculty=${faculty}&department=${department}&page=${currentPage}`)
+        .then(response => response.json())
+        .then(data => {
+            results.innerHTML = '';
+
+            if (data.items.length === 0) {
+                results.innerHTML = `
+                    <div class="col-span-full text-center py-8 text-gray-500 dark:text-gray-400">
+                        <svg class="mx-auto h-12 w-12 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <p>Tidak ada hasil yang ditemukan</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Update pagination info
+            document.getElementById('itemsShowing').textContent = data.items.length;
+            document.getElementById('currentPage').textContent = data.current_page;
+            document.getElementById('totalPages').textContent = data.pages;
+
+            // Update pagination buttons
+            document.getElementById('prevPage').disabled = !data.has_prev;
+            document.getElementById('nextPage').disabled = !data.has_next;
+
+            data.items.forEach(lecturer => {
+                const card = document.createElement('div');
+                card.className = 'group bg-white dark:bg-gray-700 rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 p-4 border border-gray-100 dark:border-gray-600';
+                card.innerHTML = `
+                    <div class="flex items-start justify-between gap-2">
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">${lecturer.name}</h3>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">${lecturer.department}</p>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">${lecturer.faculty}</p>
+                        </div>
+                        <a href="/schedule/${lecturer.slug}" 
+                           class="flex items-center text-blue-500 dark:text-blue-400 hover:text-blue-600 dark:hover:text-blue-300 transition-colors">
+                            <span class="text-sm">Lihat</span>
+                            <svg class="w-4 h-4 ml-1 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                            </svg>
+                        </a>
+                    </div>
+                `;
+                results.appendChild(card);
+            });
+        })
+        .catch(error => {
+            results.innerHTML = `
+                <div class="col-span-full text-center py-8 text-red-500 dark:text-red-400">
+                    <p>Terjadi kesalahan saat memuat data</p>
+                </div>
+            `;
+        });
+}
+
+// Pagination handlers
+document.getElementById('prevPage').addEventListener('click', () => {
+    if (currentPage > 1) {
+        currentPage--;
+        updateResults();
+    }
+});
+
+document.getElementById('nextPage').addEventListener('click', () => {
+    currentPage++;
+    updateResults();
+});
+
+// Debounced search input handler
+document.getElementById('search').addEventListener('input', (e) => {
+    clearTimeout(searchTimeout);
+    currentPage = 1; // Reset to first page on new search
+    searchTimeout = setTimeout(updateResults, 300);
+});
+
+// Faculty change handler
+document.getElementById('faculty').addEventListener('change', () => {
+    const facultyId = document.getElementById('faculty').value;
+    const departments = document.getElementById('department').options;
+
+    for (let i = 0; i < departments.length; i++) {
+        if (departments[i].value === '' || departments[i].dataset.faculty === facultyId) {
+            departments[i].style.display = 'block';
+        } else {
+            departments[i].style.display = 'none';
+        }
+    }
+
+    currentPage = 1; // Reset to first page on faculty change
+    updateResults();
+});
+
+// Department change handler
+document.getElementById('department').addEventListener('change', () => {
+    currentPage = 1; // Reset to first page on department change
+    updateResults();
+});
+
+// Initial load
+updateResults();
+</script>
+{% endblock %}

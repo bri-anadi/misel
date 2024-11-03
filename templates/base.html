@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en" style="font-family: 'Plus Jakarta Sans';">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jadwal Dosen</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {}
+            }
+        }
+    </script>
+    <style>
+        .transition-theme {
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        /* Tambahkan style untuk animasi hover */
+        .float-button-hover {
+            transition: transform 0.2s ease;
+        }
+        .float-button-hover:hover {
+            transform: scale(1.1);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 transition-theme">
+    <nav class="bg-white dark:bg-gray-800 shadow-lg transition-theme">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex justify-between h-16">
+                <div class="flex">
+                    <a href="/" class="flex items-center text-md md:text-xl font-bold text-gray-800 dark:text-white transition-theme">
+                        Jadwal Dosen
+                    </a>
+                </div>
+                <div class="flex items-center">
+                    {% if 'lecturer_id' in session %}
+                        <a href="{{ url_for('dashboard') }}" class="text-sm text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white px-2 py-2 rounded-md transition-theme">Dashboard</a>
+                        <a href="{{ url_for('logout') }}" class="text-sm text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-500 px-2 py-2 rounded-md transition-theme">Logout</a>
+                    {% else %}
+                        <a href="{{ url_for('login') }}" class="text-sm text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white px-2 py-2 rounded-md transition-theme">Login</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Floating Dark Mode Toggle -->
+    <button id="darkModeToggle" class="fixed bottom-6 right-6 p-3 rounded-full shadow-lg bg-white dark:bg-gray-800 hover:shadow-xl float-button-hover transition-theme">
+        <svg id="sunIcon" class="hidden w-6 h-6 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+        </svg>
+        <svg id="moonIcon" class="w-6 h-6 text-gray-700 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+        </svg>
+    </button>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const darkModeToggle = document.getElementById('darkModeToggle');
+            const sunIcon = document.getElementById('sunIcon');
+            const moonIcon = document.getElementById('moonIcon');
+            const html = document.documentElement;
+
+            function updateIcons(isDark) {
+                if (isDark) {
+                    sunIcon.classList.remove('hidden');
+                    moonIcon.classList.add('hidden');
+                } else {
+                    sunIcon.classList.add('hidden');
+                    moonIcon.classList.remove('hidden');
+                }
+            }
+
+            function setDarkMode(isDark) {
+                if (isDark) {
+                    html.classList.add('dark');
+                } else {
+                    html.classList.remove('dark');
+                }
+                updateIcons(isDark);
+
+                fetch('/set-theme', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token() if csrf_token else "" }}'
+                    },
+                    body: JSON.stringify({ dark_mode: isDark })
+                });
+            }
+
+            const isDarkMode = {{ 'true' if session.get('dark_mode', False) else 'false' }};
+            setDarkMode(isDarkMode);
+
+            darkModeToggle.addEventListener('click', () => {
+                const isDark = !html.classList.contains('dark');
+                setDarkMode(isDark);
+            });
+        });
+    </script>
+</body>
+</html>
