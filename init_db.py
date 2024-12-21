@@ -9,14 +9,12 @@ def init_db():
         if Faculty.query.first():
             return
 
-        # Deklarasi fakultas yang baru
         fik = Faculty(name='Fakultas Ilmu Komputer')
         fes = Faculty(name='Fakultas Ekonomi dan Sosial')
         fst = Faculty(name='Fakultas Sains dan Teknologi')
         db.session.add_all([fik, fes, fst])
         db.session.commit()
 
-        # Penyesuaian departemen dengan fakultas yang sesuai
         d3_ti_d = Department(name='D3 Teknik Informatika', faculty=fik)
         d3_mi_d = Department(name='D3 Manajemen Informatika', faculty=fik)
         s1_informatika_d = Department(name='S1 Informatika', faculty=fik)
@@ -24,7 +22,7 @@ def init_db():
         s1_ti_d = Department(name='S1 Teknologi Informasi', faculty=fik)
         s1_tk_d = Department(name='S1 Teknik Komputer', faculty=fik)
 
-        # Fakultas Ekonomi dan Sosial (FES) - Departemen yang baru ditambahkan
+        # Fakultas Ekonomi dan Sosial (FES)
         s1_akuntansi_d = Department(name='S1 Akuntansi', faculty=fes)
         s1_ekonomi_d = Department(name='S1 Ekonomi', faculty=fes)
         s1_hubungan_internasional_d = Department(name='S1 Hubungan Internasional', faculty=fes)
@@ -32,23 +30,18 @@ def init_db():
         s1_ilmu_pemerintahan_d = Department(name='S1 Ilmu Pemerintahan', faculty=fes)
         s1_kewirausahaan_d = Department(name='S1 Kewirausahaan', faculty=fes)
 
-        # Fakultas Sains dan Teknologi (FST) - Departemen yang baru ditambahkan
+        # Fakultas Sains dan Teknologi (FST) 
         s1_arsitektur_d = Department(name='S1 Arsitektur', faculty=fst)
         s1_perencanaan_wilayah_kota_d = Department(name='S1 Perencanaan Wilayah dan Kota', faculty=fst)
         s1_geografi_d = Department(name='S1 Geografi', faculty=fst)
-
-        bio_d = Department(name='S1 Biologi', faculty=fst)
-        kimia_d = Department(name='S1 Kimia', faculty=fst)
-        fisika_d = Department(name='S1 Fisika', faculty=fst)
 
         db.session.add_all([d3_ti_d, d3_mi_d, s1_informatika_d, s1_si_d, s1_ti_d, s1_tk_d, 
                             s1_akuntansi_d, s1_ekonomi_d, s1_hubungan_internasional_d, 
                             s1_ilmu_komunikasi_d, s1_ilmu_pemerintahan_d, s1_kewirausahaan_d, 
                             s1_arsitektur_d, s1_perencanaan_wilayah_kota_d, s1_geografi_d,
-                            bio_d, kimia_d, fisika_d])
+                            ])
         db.session.commit()
 
-        # Penyesuaian daftar dosen
         lecturers = [
             Lecturer(
                 nik='20240101',
