@@ -3,9 +3,7 @@
 <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 backdrop-blur-lg bg-opacity-50 dark:bg-opacity-50">
     <h1 class="text-2xl font-semibold mb-6 text-gray-900 dark:text-white">Cari Jadwal Dosen</h1>
 
-    <!-- Search Controls -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <!-- Faculty Select -->
         <div class="relative">
             <label class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-2">Fakultas</label>
             <div class="relative">
@@ -57,14 +55,10 @@
         </div>
     </div>
 
-    <!-- Results Grid and Pagination -->
     <div class="space-y-6">
-        <!-- Results Grid -->
         <div id="results" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <!-- Results will be populated here -->
         </div>
 
-        <!-- Pagination Controls -->
         <div id="pagination" class="flex items-center justify-between border-t border-gray-200 dark:border-gray-700 px-4 py-3 sm:px-6">
             <div class="flex items-center">
                 <p class="text-sm text-gray-700 dark:text-gray-300">
@@ -96,7 +90,6 @@ function updateResults() {
     const faculty = document.getElementById('faculty').value;
     const department = document.getElementById('department').value;
 
-    // Show loading state
     const results = document.getElementById('results');
     results.innerHTML = '<div class="col-span-full flex justify-center py-8"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 dark:border-blue-400"></div></div>';
 
@@ -117,12 +110,10 @@ function updateResults() {
                 return;
             }
 
-            // Update pagination info
             document.getElementById('itemsShowing').textContent = data.items.length;
             document.getElementById('currentPage').textContent = data.current_page;
             document.getElementById('totalPages').textContent = data.pages;
 
-            // Update pagination buttons
             document.getElementById('prevPage').disabled = !data.has_prev;
             document.getElementById('nextPage').disabled = !data.has_next;
 
@@ -157,7 +148,6 @@ function updateResults() {
         });
 }
 
-// Pagination handlers
 document.getElementById('prevPage').addEventListener('click', () => {
     if (currentPage > 1) {
         currentPage--;
@@ -170,14 +160,12 @@ document.getElementById('nextPage').addEventListener('click', () => {
     updateResults();
 });
 
-// Debounced search input handler
 document.getElementById('search').addEventListener('input', (e) => {
     clearTimeout(searchTimeout);
-    currentPage = 1; // Reset to first page on new search
+    currentPage = 1;
     searchTimeout = setTimeout(updateResults, 300);
 });
 
-// Faculty change handler
 document.getElementById('faculty').addEventListener('change', () => {
     const facultyId = document.getElementById('faculty').value;
     const departments = document.getElementById('department').options;
@@ -190,17 +178,16 @@ document.getElementById('faculty').addEventListener('change', () => {
         }
     }
 
-    currentPage = 1; // Reset to first page on faculty change
+    currentPage = 1; 
     updateResults();
 });
 
-// Department change handler
+
 document.getElementById('department').addEventListener('change', () => {
-    currentPage = 1; // Reset to first page on department change
+    currentPage = 1;
     updateResults();
 });
 
-// Initial load
 updateResults();
 </script>
 {% endblock %}

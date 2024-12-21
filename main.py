@@ -52,26 +52,14 @@ class Schedule(db.Model):
 
 
 def slugify(text):
-    """
-    Convert text to URL-friendly slug format.
-    Example: "Dr. Jane Smith, M.Sc." -> "dr-jane-smith-m-sc"
-    """
-    # Normalize unicode characters and convert to ASCII
     text = unidecode(text)
-
-    # Convert to lowercase
     text = text.lower()
-
-    # Replace special characters with spaces
     text = sub(r'[^\w\s-]', ' ', text)
 
-    # Replace multiple spaces with single hyphen
     text = sub(r'\s+', '-', text.strip())
 
-    # Remove duplicate hyphens
     text = sub(r'-+', '-', text)
 
-    # Remove leading/trailing hyphens
     text = text.strip('-')
 
     return text
@@ -81,11 +69,9 @@ def deslugify(slug):
     Convert URL slug back to original format for database queries.
     Example: "jane-smith-m-sc" -> "Jane Smith, M.Sc."
     """
-    # Replace hyphens with spaces and capitalize words
     name = sub(r'-', ' ', slug)
     return name
 
-# Authentication decorator
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -134,13 +120,11 @@ def lecturer_schedule(lecturer_slug):
     Find lecturer by their URL slug.
     Try multiple matching approaches to handle edge cases.
     """
-    # First try: Direct name match after deslugify
     lecturer = Lecturer.query.filter(
         Lecturer.name.ilike(lecturer_slug.replace('-', ' '))
     ).first()
 
     if not lecturer:
-        # Second try: Match by generated slug
         lecturers = Lecturer.query.all()
         for l in lecturers:
             if slugify(l.name) == lecturer_slug:
@@ -210,17 +194,15 @@ def manage_schedule(id):
 
 @app.route('/api/search')
 def search_lecturers():
-    # Get search parameters
     query = request.args.get('q', '')
     faculty_id = request.args.get('faculty', '')
     department_id = request.args.get('department', '')
     page = request.args.get('page', 1, type=int)
-    per_page = 9  # Number of items per page
+    per_page = 9 
 
-    # Build the query
     lecturers = Lecturer.query
 
-    # Apply filters
+
     if query:
         lecturers = lecturers.filter(Lecturer.name.ilike(f'%{query}%'))
     if faculty_id:
@@ -228,10 +210,8 @@ def search_lecturers():
     if department_id:
         lecturers = lecturers.filter(Lecturer.department_id == department_id)
 
-    # Get paginated results
     paginated_lecturers = lecturers.paginate(page=page, per_page=per_page, error_out=False)
 
-    # Prepare response
     results = {
         'items': [],
         'total': paginated_lecturers.total,
@@ -242,7 +222,6 @@ def search_lecturers():
         'per_page': per_page
     }
 
-    # Format lecturer data
     for lecturer in paginated_lecturers.items:
         results['items'].append({
             'id': lecturer.id,
@@ -260,7 +239,6 @@ def export_schedule(format):
     lecturer = Lecturer.query.get(session['lecturer_id'])
     schedules = Schedule.query.filter_by(lecturer_id=lecturer.id).all()
 
-    # Convert schedules to DataFrame
     data = []
     for schedule in schedules:
         data.append({
@@ -273,10 +251,8 @@ def export_schedule(format):
 
     df = pd.DataFrame(data)
 
-    # Create a BytesIO object to store the file
     buffer = BytesIO()
 
-    # Export based on format
     if format == 'xlsx':
         df.to_excel(buffer, index=False, engine='openpyxl')
         mimetype = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
@@ -309,25 +285,20 @@ def import_schedule():
         return jsonify({'error': 'Invalid file format. Please upload XLSX or CSV file'}), 400
 
     try:
-        # Create temporary file to store the upload
         with tempfile.NamedTemporaryFile(delete=False) as tmp:
             file.save(tmp.name)
 
-            # Read the file based on its extension
             if file.filename.endswith('.xlsx'):
                 df = pd.read_excel(tmp.name)
             else:
                 df = pd.read_csv(tmp.name)
 
-        # Delete temporary file
         os.unlink(tmp.name)
 
-        # Validate column names
         required_columns = {'Mata Kuliah', 'Hari', 'Waktu Mulai', 'Waktu Selesai', 'Ruang'}
         if not required_columns.issubset(df.columns):
             return jsonify({'error': 'Invalid file format. Missing required columns'}), 400
 
-        # Import schedules
         success_count = 0
         error_count = 0
 
