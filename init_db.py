@@ -4,37 +4,27 @@ from werkzeug.security import generate_password_hash
 
 def init_db():
     with app.app_context():
-        # Create tables
         db.create_all()
 
-        # Check if data already exists
         if Faculty.query.first():
             return
 
-        # Add Faculties
         ft = Faculty(name='Faculty of Technology')
         fb = Faculty(name='Faculty of Business')
         fa = Faculty(name='Faculty of Arts and Design')
         db.session.add_all([ft, fb, fa])
         db.session.commit()
 
-        # Add Departments
-        # Faculty of Technology
         cs_d = Department(name='Computer Science', faculty=ft)
         is_d = Department(name='Information Systems', faculty=ft)
         ce_d = Department(name='Computer Engineering', faculty=ft)
-
-        # Faculty of Business
         ba_d = Department(name='Business Administration', faculty=fb)
         dm_d = Department(name='Digital Marketing', faculty=fb)
-
-        # Faculty of Arts and Design
         ad_d = Department(name='Art and Design', faculty=fa)
 
         db.session.add_all([cs_d, is_d, ce_d, ba_d, dm_d, ad_d])
         db.session.commit()
-
-        # Add Lecturers
+        
         lecturers = [
             Lecturer(
                 nik='20240301',
