@@ -2,9 +2,9 @@
 
 ### Init
 1. Running init database
-  ```
-  $ python init_db.py
-  ```
+   ```
+   $ python init_db.py
+   ```
 
 2. Running Code
    ```

@@ -8,7 +8,6 @@
             <p class="text-gray-600 dark:text-gray-400">NIK: {{ lecturer.nik }}</p>
         </div>
         <div class="flex space-x-3">
-            <!-- Management Buttons -->
             <button onclick="openAddModal()" 
                     class="inline-flex items-center px-4 py-2.5 bg-blue-500 dark:bg-blue-600 text-white rounded-xl hover:bg-blue-600 dark:hover:bg-blue-700 transition-colors">
                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -17,7 +16,6 @@
                 Tambah
             </button>
 
-            <!-- Export/Import Dropdown -->
             <div class="relative">
                 <button onclick="toggleDropdown()" 
                         class="inline-flex items-center px-4 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
@@ -87,7 +85,6 @@
     </div>
 </div>
 
-<!-- Add Schedule Modal -->
 <div id="addModal" class="hidden fixed inset-0 bg-gray-900/50 dark:bg-gray-900/80 backdrop-blur-sm overflow-y-auto h-full w-full">
     <div class="relative top-20 mx-auto p-6 border w-96 shadow-lg rounded-2xl bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700">
         <div class="mt-3">
@@ -224,7 +221,6 @@
 const socket = io();
 let currentSchedule = null;
 
-// Socket.io event listeners remain the same
 socket.on('schedule_update', function(data) {
     if (data.action === 'add') {
         addScheduleToDOM(data.schedule);
@@ -235,7 +231,6 @@ socket.on('schedule_update', function(data) {
     }
 });
 
-// Modal functions remain the same
 function openAddModal() {
     document.getElementById('addModal').classList.remove('hidden');
 }
@@ -250,7 +245,6 @@ function toggleDropdown() {
     dropdownMenu.classList.toggle('hidden');
 }
 
-// Close dropdown when clicking outside
 window.addEventListener('click', function(e) {
     const dropdown = document.querySelector('.relative');
     if (!dropdown.contains(e.target)) {
@@ -280,7 +274,6 @@ function closeEditModal() {
     currentSchedule = null;
 }
 
-// DOM manipulation functions
 function addScheduleToDOM(schedule) {
     const scheduleList = document.getElementById('scheduleList');
     const scheduleElement = createScheduleElement(schedule);
@@ -332,7 +325,6 @@ function createScheduleElement(schedule) {
     return div;
 }
 
-// Form submissions
 document.getElementById('addForm').addEventListener('submit', function(e) {
     e.preventDefault();
     const formData = new FormData(e.target);
@@ -409,7 +401,6 @@ function importSchedule(input) {
             alert('Error: ' + result.error);
         } else {
             alert(result.message);
-            // Refresh the page to show new schedules
             window.location.reload();
         }
     })
@@ -417,7 +408,6 @@ function importSchedule(input) {
         alert('Error uploading file: ' + error);
     })
     .finally(() => {
-        // Reset the file input
         input.value = '';
     });
 }
