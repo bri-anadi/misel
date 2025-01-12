@@ -3,7 +3,6 @@ from flask import Flask, render_template, request, jsonify, redirect, url_for, s
 from io import BytesIO
 from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
-from flask_socketio import SocketIO, emit
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from functools import wraps
@@ -15,9 +14,6 @@ import tempfile
 import os
 from dotenv import load_dotenv
 
-load_dotenv()
-
-app = Flask(__name__)
 load_dotenv()
 
 app = Flask(__name__)
@@ -41,10 +37,7 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
 }
 
 db = SQLAlchemy(app)
-socketio = SocketIO(app)
 
-
-# Models
 class Faculty(db.Model):
     __tablename__ = 'faculty'
     id = db.Column(db.Integer, primary_key=True)
@@ -102,26 +95,18 @@ def slugify(text):
 
 
 def deslugify(slug):
-    """
-    Convert URL slug back to original format for database queries.
-    Example: "jane-smith-m-sc" -> "Jane Smith, M.Sc."
-    """
     name = sub(r'-', ' ', slug)
     return name
 
 
 def login_required(f):
-
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'lecturer_id' not in session:
             return redirect(url_for('login'))
         return f(*args, **kwargs)
-
     return decorated_function
 
-
-# Routes
 @app.route('/')
 def index():
     faculties = Faculty.query.all()
@@ -164,10 +149,6 @@ def dashboard():
 
 @app.route('/schedule/<string:lecturer_slug>')
 def lecturer_schedule(lecturer_slug):
-    """
-    Find lecturer by their URL slug.
-    Try multiple matching approaches to handle edge cases.
-    """
     lecturer = Lecturer.query.filter(
         Lecturer.name.ilike(lecturer_slug.replace('-', ' '))).first()
 
@@ -183,8 +164,6 @@ def lecturer_schedule(lecturer_slug):
 
     return render_template('schedule.html', lecturer=lecturer)
 
-
-# API Routes
 @app.route('/api/schedule', methods=['POST'])
 @login_required
 def add_schedule():
@@ -197,19 +176,18 @@ def add_schedule():
                             lecturer_id=session['lecturer_id'])
     db.session.add(new_schedule)
     db.session.commit()
-    socketio.emit(
-        'schedule_update', {
-            'action': 'add',
-            'schedule': {
-                'id': new_schedule.id,
-                'course_name': new_schedule.course_name,
-                'day': new_schedule.day,
-                'start_time': new_schedule.start_time,
-                'end_time': new_schedule.end_time,
-                'room': new_schedule.room
-            }
-        })
-    return jsonify({'message': 'Schedule added successfully'})
+
+    return jsonify({
+        'message': 'Schedule added successfully',
+        'schedule': {
+            'id': new_schedule.id,
+            'course_name': new_schedule.course_name,
+            'day': new_schedule.day,
+            'start_time': new_schedule.start_time,
+            'end_time': new_schedule.end_time,
+            'room': new_schedule.room
+        }
+    })
 
 
 @app.route('/api/schedule/<int:id>', methods=['PUT', 'DELETE'])
@@ -227,27 +205,22 @@ def manage_schedule(id):
         schedule.end_time = data['end_time']
         schedule.room = data['room']
         db.session.commit()
-        socketio.emit(
-            'schedule_update', {
-                'action': 'update',
-                'schedule': {
-                    'id': schedule.id,
-                    'course_name': schedule.course_name,
-                    'day': schedule.day,
-                    'start_time': schedule.start_time,
-                    'end_time': schedule.end_time,
-                    'room': schedule.room
-                }
-            })
-        return jsonify({'message': 'Schedule updated successfully'})
+
+        return jsonify({
+            'message': 'Schedule updated successfully',
+            'schedule': {
+                'id': schedule.id,
+                'course_name': schedule.course_name,
+                'day': schedule.day,
+                'start_time': schedule.start_time,
+                'end_time': schedule.end_time,
+                'room': schedule.room
+            }
+        })
 
     elif request.method == 'DELETE':
         db.session.delete(schedule)
         db.session.commit()
-        socketio.emit('schedule_update', {
-            'action': 'delete',
-            'schedule_id': id
-        })
         return jsonify({'message': 'Schedule deleted successfully'})
 
 
@@ -319,7 +292,7 @@ def export_schedule(format):
         df.to_excel(buffer, index=False, engine='openpyxl')
         mimetype = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         file_ext = 'xlsx'
-    else:  # csv
+    else: 
         df.to_csv(buffer, index=False)
         mimetype = 'text/csv'
         file_ext = 'csv'
@@ -411,4 +384,4 @@ def set_theme():
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-    socketio.run(app, debug=True, host="0.0.0.0")
+    app.run(debug=True, host="0.0.0.0")
